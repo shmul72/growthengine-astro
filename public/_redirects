@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects: old Wix blog URLs -> new ones
+/post/ai-is-a-multiplier-we-find-humans-worth-multiplying  /blog/ai-is-a-multiplier  301
+/post/staff-augmentation-vs-outsourcing-why-staff-augmentation-wins  /blog/staff-augmentation-vs-outsourcing  301
+/post/building-a-team-from-scratch  /blog/building-a-team-from-scratch  301
+/post/this-is-a-second-post-from-growthengine  /blog/scaling-out-nuorder-team  301
+/post/hello-world  /blog/diversifying-edmodo-global-team  301
+/blog/categories/*  /blog  301
+/blog/tags/*  /blog  301

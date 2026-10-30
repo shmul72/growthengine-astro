@@ -1,0 +1,165 @@
+---
+import { CALENDLY_URL } from '../config';
+
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+const onHome = currentPath === '/';
+// On the homepage, Home and How It Works are in-page links (handled by the script below).
+const links = [
+  { key: 'home', href: onHome ? '#top' : '/', label: 'Home', active: onHome },
+  { key: 'how', href: onHome ? '#how-it-works' : '/#how-it-works', label: 'How It Works', active: false },
+  { key: 'blog', href: '/blog', label: 'Blog', active: currentPath.startsWith('/blog') },
+];
+---
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-logo">
+      <img src="/logo.png" alt="" width="36" height="36" />
+      <span>GrowthEngine</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" aria-controls="nav-links" id="nav-toggle">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <ul class="nav-links" id="nav-links">
+      {links.map(({ key, href, label, active }) => (
+        <li>
+          <a href={href} data-nav={key} class:list={[{ active }]}>{label}</a>
+        </li>
+      ))}
+      <li><a href={CALENDLY_URL} target="_blank" rel="noopener" class="btn btn-primary nav-cta">Get in Touch</a></li>
+    </ul>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--accent);
+  }
+
+  .nav-links a.nav-cta,
+  .nav-links a.nav-cta:hover {
+    color: var(--white);
+  }
+
+  .nav-cta {
+    padding: 8px 24px;
+    font-size: 0.9rem;
+  }
+
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .nav-toggle span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--black);
+    transition: transform 0.2s;
+  }
+
+  @media (max-width: 768px) {
+    .nav-toggle {
+      display: flex;
+    }
+
+    .nav-links {
+      display: none;
+      position: absolute;
+      top: 72px;
+      left: 0;
+      right: 0;
+      background: var(--white);
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .nav-links.open {
+      display: flex;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('nav-toggle');
+  const links = document.getElementById('nav-links');
+  toggle?.addEventListener('click', () => links?.classList.toggle('open'));
+  links?.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => links.classList.remove('open')));
+
+  // In-page links (homepage): scroll ourselves so they work in any host, and keep the URL tidy.
+  const smooth = window.matchMedia('(prefers-reduced-motion: no-preference)').matches ? 'smooth' : 'auto';
+  links?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href')!.slice(1);
+      const target = id === 'top' ? null : document.getElementById(id);
+      e.preventDefault();
+      const top = target ? target.getBoundingClientRect().top + window.scrollY - 72 : 0;
+      window.scrollTo({ top, behavior: smooth });
+      try {
+        history.replaceState(null, '', target ? `#${id}` : location.pathname + location.search);
+      } catch {}
+    }),
+  );
+
+  // Highlight Home or How It Works depending on where the homepage is scrolled.
+  const section = document.getElementById('how-it-works');
+  const homeLink = links?.querySelector('a[data-nav="home"]');
+  const howLink = links?.querySelector('a[data-nav="how"]');
+  if (section && homeLink && howLink && homeLink.classList.contains('active')) {
+    const update = () => {
+      const r = section.getBoundingClientRect();
+      const inSection = r.top <= 160 && r.bottom > 160;
+      howLink.classList.toggle('active', inSection);
+      homeLink.classList.toggle('active', !inSection);
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
+</script>

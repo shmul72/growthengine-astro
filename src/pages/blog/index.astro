@@ -1,0 +1,311 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPosts, tagSlug } from '../../lib/posts';
+
+const posts = await getPosts();
+const tags = Array.from(new Set(posts.flatMap((p) => p.data.tags))).sort();
+
+// Plain-text copy of each post for the built-in search, used when the
+// Pagefind index can't load (e.g. in `npm run dev`, before a build).
+const plain = (md = '') =>
+  md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[#*_>`]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const searchData = posts.map((p) => ({
+  id: p.id,
+  title: p.data.title,
+  text: [p.data.excerpt, p.data.tags.join(' '), plain(p.body)].join(' '),
+}));
+---
+
+<Base title="Blog" description="Notes on hiring, screening and building engineering teams from GrowthEngine.">
+
+  <section class="listing-hero">
+    <div class="container">
+      <h1>All blog posts</h1>
+
+      <div class="search-bar">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" placeholder="Search articles..." class="search-input" id="search-input" aria-label="Search articles" />
+      </div>
+
+      {tags.length > 0 && (
+        <div class="tags-row" id="tags-row">
+          <button type="button" class="tag-pill tag-active" data-tag="">All</button>
+          {tags.map((tag) => (
+            <button type="button" class="tag-pill" data-tag={tagSlug(tag)}>{tag}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="posts-grid" id="posts-grid">
+        {posts.map((post) => <PostCard post={post} />)}
+      </div>
+      <div id="search-results" hidden></div>
+      <script type="application/json" id="search-data" set:html={JSON.stringify(searchData).replace(/</g, '\\u003c')} />
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  .listing-hero {
+    background: var(--white);
+    padding: 48px 0;
+    text-align: center;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .listing-hero h1 {
+    margin-bottom: 28px;
+  }
+
+  .search-bar {
+    position: relative;
+    max-width: 520px;
+    margin: 0 auto 28px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-400);
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    font-size: 1rem;
+    font-family: var(--font);
+    border: 1px solid var(--gray-200);
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+    background: var(--gray-100);
+  }
+
+  .search-input:focus {
+    border-color: var(--black);
+    background: var(--white);
+  }
+
+  .search-input::placeholder {
+    color: var(--gray-400);
+  }
+
+  .tags-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .tag-pill {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-family: var(--font);
+    font-weight: 500;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-600);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .tag-pill:hover {
+    border-color: var(--black);
+    color: var(--black);
+  }
+
+  .tag-pill.tag-active {
+    background: var(--black);
+    color: var(--white);
+    border-color: var(--black);
+  }
+
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 32px;
+  }
+
+  #search-results {
+    min-height: 200px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  #search-results :global(.search-result) {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  #search-results :global(.search-result a) {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--black);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  #search-results :global(.search-result a:hover) {
+    color: var(--accent);
+  }
+
+  #search-results :global(.search-result p) {
+    font-size: 0.95rem;
+    color: var(--gray-600);
+    line-height: 1.6;
+  }
+
+  #search-results :global(mark) {
+    background: #fef08a;
+    color: inherit;
+    padding: 1px 2px;
+  }
+
+  @media (max-width: 768px) {
+    .listing-hero {
+      padding: 32px 0;
+    }
+
+    .posts-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var input = document.getElementById('search-input');
+    var grid = document.getElementById('posts-grid');
+    var results = document.getElementById('search-results');
+    var tagsRow = document.getElementById('tags-row');
+    var pagefind = null;
+
+    // Tag filter (also reads ?tag=... so tag links on posts land filtered)
+    function setTag(tag) {
+      if (tagsRow) {
+        tagsRow.querySelectorAll('.tag-pill').forEach(function (b) {
+          b.classList.toggle('tag-active', b.getAttribute('data-tag') === tag);
+        });
+      }
+      grid.querySelectorAll('.post-card').forEach(function (card) {
+        var tags = (card.getAttribute('data-tags') || '').split(' ');
+        card.style.display = !tag || tags.indexOf(tag) !== -1 ? '' : 'none';
+      });
+    }
+
+    if (tagsRow) {
+      tagsRow.addEventListener('click', function (e) {
+        var btn = e.target.closest('.tag-pill');
+        if (btn) setTag(btn.getAttribute('data-tag'));
+      });
+    }
+    var initial = new URLSearchParams(location.search).get('tag');
+    if (initial) setTag(initial);
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function show(found) {
+      grid.hidden = true;
+      results.hidden = false;
+      if (found.length === 0) {
+        results.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:40px 0;">No results found.</p>';
+        return;
+      }
+      results.innerHTML = found.map(function (r) {
+        return '<div class="search-result"><a href="' + escapeHtml(r.url) + '">' + escapeHtml(r.title) + '</a><p>' + r.excerpt + '</p></div>';
+      }).join('');
+    }
+
+    // Built-in search over the posts on this page (fallback when Pagefind isn't available)
+    var data = [];
+    try { data = JSON.parse(document.getElementById('search-data').textContent); } catch (e) {}
+    function cardHref(id) {
+      var card = grid.querySelector('.post-card[data-id="' + id + '"]');
+      return card ? card.getAttribute('href') : '#';
+    }
+    function localSearch(query) {
+      var words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      return data
+        .map(function (p) {
+          var title = p.title.toLowerCase();
+          var text = p.text.toLowerCase();
+          var score = 0;
+          for (var i = 0; i < words.length; i++) {
+            var w = words[i];
+            if (title.indexOf(w) === -1 && text.indexOf(w) === -1) return null;
+            if (title.indexOf(w) !== -1) score += 10;
+            score += text.split(w).length - 1;
+          }
+          var at = Math.max(0, text.indexOf(words[0]));
+          var start = Math.max(0, at - 60);
+          if (start > 0) start = p.text.indexOf(' ', start) + 1;
+          var snippet = (start > 0 ? '... ' : '') + p.text.slice(start, at + 140) + ' ...';
+          var safe = escapeHtml(snippet);
+          words.forEach(function (w) {
+            var re = new RegExp('(' + escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            safe = safe.replace(re, '<mark>$1</mark>');
+          });
+          return { score: score, url: cardHref(p.id), title: p.title, excerpt: safe };
+        })
+        .filter(Boolean)
+        .sort(function (a, b) { return b.score - a.score; })
+        .slice(0, 10);
+    }
+
+    // Full-text search with Pagefind (the index is built by `npm run build`)
+    var pagefindState = 'unloaded';
+    async function loadPagefind() {
+      if (pagefindState !== 'unloaded') return;
+      pagefindState = 'loading';
+      try {
+        pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.init();
+        pagefindState = 'ready';
+      } catch (e) {
+        pagefindState = 'failed';
+      }
+    }
+
+    input.addEventListener('input', async function () {
+      var query = input.value.trim();
+      if (!query) {
+        grid.hidden = false;
+        results.hidden = true;
+        results.innerHTML = '';
+        return;
+      }
+      await loadPagefind();
+      if (input.value.trim() !== query) return;
+      if (pagefindState !== 'ready') {
+        show(localSearch(query));
+        return;
+      }
+      var search = await pagefind.debouncedSearch(query);
+      if (!search || input.value.trim() !== query) return;
+      var found = await Promise.all(search.results.slice(0, 10).map(function (r) { return r.data(); }));
+      show(found.map(function (r) {
+        return { url: r.url, title: r.meta && r.meta.title ? r.meta.title : 'Untitled', excerpt: r.excerpt };
+      }));
+    });
+  })();
+</script>
