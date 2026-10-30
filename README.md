@@ -9,7 +9,7 @@ Needs Node 22.23.4 or newer (Node 24 recommended).
 
 ```
 npm install
-npm run dev        # http://localhost:4321 (search only works after a build)
+npm run dev        # http://localhost:4321 (uses the built-in search; Pagefind needs a build)
 npm run build      # builds the site into dist/ and the search index into dist/pagefind/
 npm run preview    # serves dist/ locally
 ```
@@ -52,6 +52,11 @@ The big homepage headline and its **Read More** button follow the featured post.
 
 All homepage copy (sections, cards, closing call to action) is in `src/content/pages/home.md`.
 The "Trusted by" logo bar and the testimonial stay hidden until real ones are added there.
+
+## Search
+
+The blog search uses Pagefind, built by `npm run build`. If the Pagefind files can't load
+(for example in `npm run dev`), the page falls back to a simple built-in search over the posts.
 
 ## Booking link
 

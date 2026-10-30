@@ -24,6 +24,7 @@ const blog = defineCollection({
 });
 
 const item = z.object({ title: z.string(), description: z.string() });
+const service = item.extend({ points: z.array(z.string()).default([]) });
 
 const pages = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/pages' }),
@@ -32,7 +33,7 @@ const pages = defineCollection({
     trusted_by_label: z.string().optional(),
     trusted_by: z.array(z.object({ name: z.string(), logo: z.string().optional() })).default([]),
     services_heading: z.string(),
-    services: z.array(item),
+    services: z.array(service),
     steps_heading: z.string().optional(),
     steps: z.array(item).default([]),
     why_heading: z.string(),

@@ -11,7 +11,7 @@ const { post, showMeta = true } = Astro.props;
 const { title, excerpt, cover, tags, author, date } = post.data;
 ---
 
-<a href={`/blog/${post.id}`} class="post-card" data-tags={tags.map(tagSlug).join(' ')}>
+<a href={`/blog/${post.id}`} class="post-card" data-id={post.id} data-tags={tags.map(tagSlug).join(' ')}>
   {cover && (
     <div class="post-card-image">
       <img src={cover} alt="" loading="lazy" />

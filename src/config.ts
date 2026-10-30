@@ -6,4 +6,4 @@ export const CALENDLY_URL = 'https://calendly.com/zrozinskiy';
 
 export const SITE_NAME = 'GrowthEngine';
 export const SITE_DESCRIPTION =
-  'GrowthEngine screens your inbound applicants and hands your hiring manager a shortlist of pre-interviewed candidates.';
+  'GrowthEngine hires engineers globally to build out your team, and screens your inbound applicants into a shortlist of pre-interviewed candidates.';

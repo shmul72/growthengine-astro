@@ -44,11 +44,16 @@ const caseStudies = (await getPosts()).filter((p) => p.data.tags.includes('Case 
   <section class="section section-alt">
     <div class="container">
       <h2 class="section-title">{d.services_heading}</h2>
-      <div class="cards">
+      <div class="cards services">
         {d.services.map((s) => (
           <div class="card">
             <h3>{s.title}</h3>
             <p>{s.description}</p>
+            {s.points.length > 0 && (
+              <ul class="card-points">
+                {s.points.map((pt) => <li>{pt}</li>)}
+              </ul>
+            )}
           </div>
         ))}
       </div>
@@ -223,6 +228,41 @@ const caseStudies = (await getPosts()).filter((p) => p.data.tags.includes('Case 
     font-size: 1rem;
   }
 
+  .services {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+
+  .services .card {
+    padding: 40px;
+  }
+
+  .card-points {
+    list-style: none;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-points li {
+    position: relative;
+    padding-left: 24px;
+    color: var(--gray-800);
+    font-size: 0.98rem;
+  }
+
+  .card-points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 10px;
+    height: 2px;
+    background: var(--black);
+  }
+
   .steps {
     list-style: none;
     display: grid;
@@ -317,7 +357,8 @@ const caseStudies = (await getPosts()).filter((p) => p.data.tags.includes('Case 
     .hero { padding: 80px 0 64px; }
     .hero h1 { font-size: 2.5rem; }
     .hero-sub { font-size: 1.1rem; }
-    .cards { grid-template-columns: 1fr; }
+    .cards, .services { grid-template-columns: 1fr; }
+    .services .card { padding: 28px; }
     .steps { grid-template-columns: 1fr; gap: 28px; }
     .why-grid { grid-template-columns: 1fr; gap: 32px; }
     .testimonial blockquote p { font-size: 1.25rem; }

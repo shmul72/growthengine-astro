@@ -5,6 +5,21 @@ import { getPosts, tagSlug } from '../../lib/posts';
 
 const posts = await getPosts();
 const tags = Array.from(new Set(posts.flatMap((p) => p.data.tags))).sort();
+
+// Plain-text copy of each post for the built-in search, used when the
+// Pagefind index can't load (e.g. in `npm run dev`, before a build).
+const plain = (md = '') =>
+  md
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[#*_>`]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const searchData = posts.map((p) => ({
+  id: p.id,
+  title: p.data.title,
+  text: [p.data.excerpt, p.data.tags.join(' '), plain(p.body)].join(' '),
+}));
 ---
 
 <Base title="Blog" description="Notes on hiring, screening and building engineering teams from GrowthEngine.">
@@ -38,6 +53,7 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.data.tags))).sort();
         {posts.map((post) => <PostCard post={post} />)}
       </div>
       <div id="search-results" hidden></div>
+      <script type="application/json" id="search-data" set:html={JSON.stringify(searchData).replace(/</g, '\\u003c')} />
     </div>
   </section>
 
@@ -208,7 +224,68 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.data.tags))).sort();
       });
     }
 
+    function show(found) {
+      grid.hidden = true;
+      results.hidden = false;
+      if (found.length === 0) {
+        results.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:40px 0;">No results found.</p>';
+        return;
+      }
+      results.innerHTML = found.map(function (r) {
+        return '<div class="search-result"><a href="' + escapeHtml(r.url) + '">' + escapeHtml(r.title) + '</a><p>' + r.excerpt + '</p></div>';
+      }).join('');
+    }
+
+    // Built-in search over the posts on this page (fallback when Pagefind isn't available)
+    var data = [];
+    try { data = JSON.parse(document.getElementById('search-data').textContent); } catch (e) {}
+    function cardHref(id) {
+      var card = grid.querySelector('.post-card[data-id="' + id + '"]');
+      return card ? card.getAttribute('href') : '#';
+    }
+    function localSearch(query) {
+      var words = query.toLowerCase().split(/\s+/).filter(Boolean);
+      return data
+        .map(function (p) {
+          var title = p.title.toLowerCase();
+          var text = p.text.toLowerCase();
+          var score = 0;
+          for (var i = 0; i < words.length; i++) {
+            var w = words[i];
+            if (title.indexOf(w) === -1 && text.indexOf(w) === -1) return null;
+            if (title.indexOf(w) !== -1) score += 10;
+            score += text.split(w).length - 1;
+          }
+          var at = Math.max(0, text.indexOf(words[0]));
+          var start = Math.max(0, at - 60);
+          if (start > 0) start = p.text.indexOf(' ', start) + 1;
+          var snippet = (start > 0 ? '... ' : '') + p.text.slice(start, at + 140) + ' ...';
+          var safe = escapeHtml(snippet);
+          words.forEach(function (w) {
+            var re = new RegExp('(' + escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            safe = safe.replace(re, '<mark>$1</mark>');
+          });
+          return { score: score, url: cardHref(p.id), title: p.title, excerpt: safe };
+        })
+        .filter(Boolean)
+        .sort(function (a, b) { return b.score - a.score; })
+        .slice(0, 10);
+    }
+
     // Full-text search with Pagefind (the index is built by `npm run build`)
+    var pagefindState = 'unloaded';
+    async function loadPagefind() {
+      if (pagefindState !== 'unloaded') return;
+      pagefindState = 'loading';
+      try {
+        pagefind = await import('/pagefind/pagefind.js');
+        await pagefind.init();
+        pagefindState = 'ready';
+      } catch (e) {
+        pagefindState = 'failed';
+      }
+    }
+
     input.addEventListener('input', async function () {
       var query = input.value.trim();
       if (!query) {
@@ -217,28 +294,18 @@ const tags = Array.from(new Set(posts.flatMap((p) => p.data.tags))).sort();
         results.innerHTML = '';
         return;
       }
-      if (!pagefind) {
-        try {
-          pagefind = await import('/pagefind/pagefind.js');
-          await pagefind.init();
-        } catch (e) {
-          return;
-        }
+      await loadPagefind();
+      if (input.value.trim() !== query) return;
+      if (pagefindState !== 'ready') {
+        show(localSearch(query));
+        return;
       }
       var search = await pagefind.debouncedSearch(query);
       if (!search || input.value.trim() !== query) return;
       var found = await Promise.all(search.results.slice(0, 10).map(function (r) { return r.data(); }));
-
-      grid.hidden = true;
-      results.hidden = false;
-      if (found.length === 0) {
-        results.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:40px 0;">No results found.</p>';
-        return;
-      }
-      results.innerHTML = found.map(function (r) {
-        var title = r.meta && r.meta.title ? r.meta.title : 'Untitled';
-        return '<div class="search-result"><a href="' + escapeHtml(r.url) + '">' + escapeHtml(title) + '</a><p>' + r.excerpt + '</p></div>';
-      }).join('');
+      show(found.map(function (r) {
+        return { url: r.url, title: r.meta && r.meta.title ? r.meta.title : 'Untitled', excerpt: r.excerpt };
+      }));
     });
   })();
 </script>
