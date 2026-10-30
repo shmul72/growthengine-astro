@@ -1,0 +1,12 @@
+// Cloudflare Workers settings for the static site.
+{
+  "name": "growthengine-astro",
+  "compatibility_date": "2026-10-01",
+  // Always build with the Pagefind step, whatever the dashboard build command is.
+  "build": { "command": "npm run build" },
+  "assets": {
+    "directory": "./dist",
+    // Serve dist/404.html for unknown addresses.
+    "not_found_handling": "404-page"
+  }
+}
