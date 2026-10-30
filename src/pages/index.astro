@@ -1,0 +1,326 @@
+---
+import Base from '../layouts/Base.astro';
+import PostCard from '../components/PostCard.astro';
+import { getEntry } from 'astro:content';
+import { getPosts, getFeaturedPost } from '../lib/posts';
+import { CALENDLY_URL, SITE_NAME, SITE_DESCRIPTION } from '../config';
+
+const home = await getEntry('pages', 'home');
+if (!home) throw new Error('Missing src/content/pages/home.md');
+const d = home.data;
+
+const featured = await getFeaturedPost();
+const caseStudies = (await getPosts()).filter((p) => p.data.tags.includes('Case Studies')).slice(0, 3);
+---
+
+<Base title={SITE_NAME} description={SITE_DESCRIPTION}>
+
+  <!-- Hero: follows the featured blog post -->
+  <section class="hero">
+    <div class="container">
+      {d.hero_eyebrow && <p class="hero-eyebrow">{d.hero_eyebrow}</p>}
+      <h1>{featured?.data.hero_headline ?? featured?.data.title}</h1>
+      {featured && <p class="hero-sub">{featured.data.hero_subtext ?? featured.data.excerpt}</p>}
+      <div class="hero-actions">
+        <a href={CALENDLY_URL} target="_blank" rel="noopener" class="btn btn-primary">Get in Touch</a>
+        {featured && <a href={`/blog/${featured.id}`} class="btn btn-outline">Read More</a>}
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust bar: shown only once real logos are added -->
+  {d.trusted_by.length > 0 && (
+    <section class="section trust-bar">
+      <div class="container">
+        {d.trusted_by_label && <p class="trust-label">{d.trusted_by_label}</p>}
+        <div class="trust-logos">
+          {d.trusted_by.map((c) => (c.logo ? <img src={c.logo} alt={c.name} /> : <span class="trust-name">{c.name}</span>))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- What we do -->
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">{d.services_heading}</h2>
+      <div class="cards">
+        {d.services.map((s) => (
+          <div class="card">
+            <h3>{s.title}</h3>
+            <p>{s.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  {d.steps.length > 0 && (
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <h2 class="section-title">{d.steps_heading}</h2>
+        <ol class="steps">
+          {d.steps.map((s, i) => (
+            <li class="step">
+              <span class="step-num">{i + 1}</span>
+              <div>
+                <h3>{s.title}</h3>
+                <p>{s.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )}
+
+  <!-- Why us -->
+  <section class="section section-alt">
+    <div class="container">
+      <h2 class="section-title">{d.why_heading}</h2>
+      <div class="why-grid">
+        {d.why.map((w) => (
+          <div class="why-item">
+            <h3>{w.title}</h3>
+            <p>{w.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Case studies: blog posts tagged "Case Studies" -->
+  {caseStudies.length > 0 && (
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title">{d.case_studies_heading ?? 'Case Studies'}</h2>
+        <div class="cards">
+          {caseStudies.map((p) => <PostCard post={p} showMeta={false} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Testimonial: shown only once a real quote is added -->
+  {d.testimonial && (
+    <section class="section section-alt">
+      <div class="container testimonial">
+        <blockquote>
+          <p>&ldquo;{d.testimonial.quote}&rdquo;</p>
+          <cite>&mdash; {d.testimonial.attribution}</cite>
+        </blockquote>
+      </div>
+    </section>
+  )}
+
+  <!-- Closing CTA -->
+  <section class="section cta-section">
+    <div class="container cta-inner">
+      <h2>{d.cta_heading}</h2>
+      <p>{d.cta_text}</p>
+      <a href={CALENDLY_URL} target="_blank" rel="noopener" class="btn btn-primary">{d.cta_button_label}</a>
+    </div>
+  </section>
+
+</Base>
+
+<style>
+  .hero {
+    background: var(--white);
+    color: var(--black);
+    padding: 120px 0 100px;
+    text-align: center;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .hero-eyebrow {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .hero h1 {
+    font-size: 4rem;
+    margin: 0 auto 24px;
+    max-width: 960px;
+    color: var(--black);
+    text-wrap: balance;
+  }
+
+  .hero-sub {
+    color: var(--gray-600);
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .trust-bar {
+    text-align: center;
+    padding: 48px 0;
+  }
+
+  .trust-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-400);
+    margin-bottom: 24px;
+  }
+
+  .trust-logos {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .trust-logos img {
+    height: 36px;
+    width: auto;
+  }
+
+  .trust-name {
+    color: var(--gray-400);
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .section-title {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    padding: 32px;
+  }
+
+  .card h3 {
+    margin-bottom: 12px;
+  }
+
+  .card p {
+    font-size: 1rem;
+  }
+
+  .steps {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 40px;
+  }
+
+  .step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: var(--black);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .step h3 {
+    margin-bottom: 6px;
+  }
+
+  .step p {
+    font-size: 1rem;
+  }
+
+  .why-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 40px;
+  }
+
+  .why-item h3 {
+    margin-bottom: 8px;
+  }
+
+  .why-item p {
+    font-size: 1rem;
+  }
+
+  .testimonial {
+    text-align: center;
+    max-width: 720px;
+  }
+
+  .testimonial blockquote p {
+    font-size: 1.5rem;
+    color: var(--black);
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .testimonial cite {
+    color: var(--gray-400);
+    font-style: normal;
+    font-size: 1rem;
+  }
+
+  .cta-section {
+    background: var(--white);
+    color: var(--black);
+    border-top: 1px solid var(--gray-200);
+  }
+
+  .cta-inner {
+    text-align: center;
+  }
+
+  .cta-inner h2 {
+    margin-bottom: 16px;
+  }
+
+  .cta-inner p {
+    color: var(--gray-600);
+    margin-bottom: 32px;
+  }
+
+  #how-it-works {
+    scroll-margin-top: 72px;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 80px 0 64px; }
+    .hero h1 { font-size: 2.5rem; }
+    .hero-sub { font-size: 1.1rem; }
+    .cards { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; gap: 28px; }
+    .why-grid { grid-template-columns: 1fr; gap: 32px; }
+    .testimonial blockquote p { font-size: 1.25rem; }
+    .trust-logos { gap: 24px; }
+  }
+</style>
