@@ -8,5 +8,7 @@
     "directory": "./dist",
     // Serve dist/404.html for unknown addresses.
     "not_found_handling": "404-page"
-  }
+  },
+  // Lets Cloudflare build a preview for each pull request (wrangler preview).
+  "previews": {}
 }
