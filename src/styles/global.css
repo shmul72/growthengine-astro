@@ -28,6 +28,7 @@ html {
 }
 
 body {
+  background: var(--white);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
