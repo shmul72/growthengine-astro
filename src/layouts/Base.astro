@@ -32,8 +32,20 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <script is:inline>
+      // Start each new page at the top (or at its #section), not at a leftover scroll position.
+      // Back/forward keeps the browser's own scroll restore.
+      window.addEventListener('load', function () {
+        var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+        if (nav && nav.type === 'back_forward') return;
+        var id = location.hash.slice(1);
+        var el = id && document.getElementById(id);
+        if (el) el.scrollIntoView();
+        else window.scrollTo(0, 0);
+      });
+    </script>
   </head>
-  <body>
+  <body id="top">
     <Nav />
     <main>
       <slot />

@@ -2,10 +2,12 @@
 import { CALENDLY_URL } from '../config';
 
 const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+const onHome = currentPath === '/';
+// On the homepage, Home and How It Works are in-page links (handled by the script below).
 const links = [
-  { href: '/', label: 'Home' },
-  { href: '/#how-it-works', label: 'How It Works' },
-  { href: '/blog', label: 'Blog' },
+  { key: 'home', href: onHome ? '#top' : '/', label: 'Home', active: onHome },
+  { key: 'how', href: onHome ? '#how-it-works' : '/#how-it-works', label: 'How It Works', active: false },
+  { key: 'blog', href: '/blog', label: 'Blog', active: currentPath.startsWith('/blog') },
 ];
 ---
 
@@ -21,9 +23,9 @@ const links = [
       <span></span>
     </button>
     <ul class="nav-links" id="nav-links">
-      {links.map(({ href, label }) => (
+      {links.map(({ key, href, label, active }) => (
         <li>
-          <a href={href} class:list={[{ active: currentPath === href || (href !== '/' && currentPath.startsWith(href)) }]}>{label}</a>
+          <a href={href} data-nav={key} class:list={[{ active }]}>{label}</a>
         </li>
       ))}
       <li><a href={CALENDLY_URL} target="_blank" rel="noopener" class="btn btn-primary nav-cta">Get in Touch</a></li>
@@ -130,4 +132,34 @@ const links = [
   const links = document.getElementById('nav-links');
   toggle?.addEventListener('click', () => links?.classList.toggle('open'));
   links?.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => links.classList.remove('open')));
+
+  // In-page links (homepage): scroll ourselves so they work in any host, and keep the URL tidy.
+  const smooth = window.matchMedia('(prefers-reduced-motion: no-preference)').matches ? 'smooth' : 'auto';
+  links?.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) =>
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href')!.slice(1);
+      const target = id === 'top' ? null : document.getElementById(id);
+      e.preventDefault();
+      const top = target ? target.getBoundingClientRect().top + window.scrollY - 72 : 0;
+      window.scrollTo({ top, behavior: smooth });
+      try {
+        history.replaceState(null, '', target ? `#${id}` : location.pathname + location.search);
+      } catch {}
+    }),
+  );
+
+  // Highlight Home or How It Works depending on where the homepage is scrolled.
+  const section = document.getElementById('how-it-works');
+  const homeLink = links?.querySelector('a[data-nav="home"]');
+  const howLink = links?.querySelector('a[data-nav="how"]');
+  if (section && homeLink && howLink && homeLink.classList.contains('active')) {
+    const update = () => {
+      const r = section.getBoundingClientRect();
+      const inSection = r.top <= 160 && r.bottom > 160;
+      howLink.classList.toggle('active', inSection);
+      homeLink.classList.toggle('active', !inSection);
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
 </script>
