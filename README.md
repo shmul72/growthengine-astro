@@ -35,7 +35,7 @@ Post text goes here. Use ## for section headings.
 3. Optional images: put them in `public/blog/my-new-post/` and add
    `cover: /blog/my-new-post/cover.jpg` (card image) or `hero_image: ...` (wide image on the post).
 4. Optional: `draft: true` keeps a post off the site until you remove it.
-5. Commit and push. Cloudflare Pages rebuilds the site automatically.
+5. Commit and push. Cloudflare rebuilds the site automatically.
 
 Posts tagged `Case Studies` also show in the Case Studies section on the homepage (newest 3).
 
@@ -62,11 +62,12 @@ The blog search uses Pagefind, built by `npm run build`. If the Pagefind files c
 
 Every "Get in Touch" / "Talk to our CEO" button uses `CALENDLY_URL` in `src/config.ts`.
 
-## Deploy on Cloudflare Pages
+## Deploy on Cloudflare
 
-- Framework preset: Astro
-- Build command: `npm run build`
-- Build output directory: `dist`
+The site runs as a Cloudflare Worker with static assets, set up in `wrangler.jsonc`:
+
+- `npm run build` runs before every deploy, so the Pagefind search index is always built.
+- Files are served from `dist`, and unknown addresses get the site's 404 page.
 - Node version comes from `.node-version` (24).
 
 `public/_redirects` sends the old Wix post addresses (`/post/...`) to the new ones,
